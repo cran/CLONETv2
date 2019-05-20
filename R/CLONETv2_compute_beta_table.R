@@ -137,6 +137,7 @@ computeBeta <- function(snps.distr,beta.distr,p.thr=0.01)
 #'   position (default=0.8)
 #' @param n_digits number of digits in the output table  (default=3)
 #' @param n_cores number of available cores for computation (default=1)
+#' @param plot_stats plot summary statistics of the computed beta table (default=F)
 #' @param debug return extra columns for debugging (default=F)
 #' @return A data.frame that extends input seg_tb with columns beta, nsnp, cov,
 #'   n_beta. Moreover, CLONETv2 renames colums of seg_tb as sample, chr,
@@ -165,6 +166,7 @@ compute_beta_table<-function(seg_tb,
 														 max_af_het_snps=0.8,
                              n_digits=3,
                              n_cores=1,
+														 plot_stats=F,
 														 debug=F
 ){
 
@@ -303,6 +305,33 @@ compute_beta_table<-function(seg_tb,
   							 mc.preschedule = T, mc.cores = n_cores, mc.set.seed = T)
 
   outTable <- fromListToDF(res)
+
+  if (plot_stats){
+    n_segments <- nrow(outTable)
+    n_segments_with_beta <- length(which(!is.na(outTable$beta)))
+    fraction_analyzed_segments <- n_segments_with_beta / n_segments
+    seg_lenght_distribution <- stats::quantile(outTable$end-outTable$start + 1)
+    seg_cov_distribution <- stats::quantile(outTable$cov, na.rm = T)
+
+    n_snps_distr <- stats::quantile(outTable$nsnp)
+
+    out_text <-
+    	paste(
+    		"Computed beta table of sample \"",sample_id,"\"\n ",
+    		"Number of processed segments: ",n_segments,"\n ",
+    		"Number of segments with valid beta: ",n_segments_with_beta," (",round(fraction_analyzed_segments*100),"%)\n ",
+    		"Quantiles of input segment lenghts:\n  ",
+    		paste(format(names(seg_lenght_distribution)), format(seg_lenght_distribution), sep = ":", collapse = "\n  "),
+    		"\n ",
+    		"Quantiles of input segment coverage:\n  ",
+    		paste(format(names(seg_cov_distribution)), format(seg_cov_distribution), sep = ":", collapse = "\n  "),
+    		"\n ",
+    		"Quantiles of number of informative SNPs per input segment:\n  ",
+    	  paste(format(names(n_snps_distr)), format(n_snps_distr), sep = ":", collapse = "\n  "),
+    		sep = ""
+    	)
+    cat(out_text)
+  }
 
   if (!debug){
   	seg_columns <-colnames(outTable)[1:6]

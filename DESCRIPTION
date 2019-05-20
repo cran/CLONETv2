@@ -1,7 +1,7 @@
 Package: CLONETv2
 Type: Package
 Title: Clonality Estimates in Tumor
-Version: 2.0
+Version: 2.1.0
 Authors@R: c(person("Davide", "Prandi", email = "davide.prandi@unitn.it",role = c("aut", "cre")), 
              person("Alessandro", "Romanel", email = "alessandro.romanel@unitn.it",role = c("ctb")),
 	     person("Tarcisio", "Fedrizzi", email = "tarcisio.fedrizzi@unitn.it",role = c("ctb")))
@@ -17,6 +17,6 @@ RoxygenNote: 6.1.1
 Depends: R (>= 3.1)
 Imports: parallel, sets, ggplot2, ggrepel, arules
 NeedsCompilation: no
-Packaged: 2019-04-05 08:53:21 UTC; prandi
+Packaged: 2019-05-20 13:20:42 UTC; prandi
 Repository: CRAN
-Date/Publication: 2019-04-05 13:12:49 UTC
+Date/Publication: 2019-05-20 16:10:20 UTC

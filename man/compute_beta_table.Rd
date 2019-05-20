@@ -6,7 +6,8 @@
 \usage{
 compute_beta_table(seg_tb, pileup_tumor, pileup_normal,
   min_coverage = 20, min_required_snps = 10, min_af_het_snps = 0.2,
-  max_af_het_snps = 0.8, n_digits = 3, n_cores = 1, debug = F)
+  max_af_het_snps = 0.8, n_digits = 3, n_cores = 1, plot_stats = F,
+  debug = F)
 }
 \arguments{
 \item{seg_tb}{data.frame in \href{http://software.broadinstitute.org/software/igv/SEG}{SEG format}. Rows
@@ -38,6 +39,8 @@ position (default=0.8)}
 \item{n_digits}{number of digits in the output table  (default=3)}
 
 \item{n_cores}{number of available cores for computation (default=1)}
+
+\item{plot_stats}{plot summary statistics of the computed beta table (default=F)}
 
 \item{debug}{return extra columns for debugging (default=F)}
 }
