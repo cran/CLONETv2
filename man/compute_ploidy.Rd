@@ -6,7 +6,8 @@
 \usage{
 compute_ploidy(beta_table, max_homo_dels_fraction = 0.01,
   beta_limit_for_neutral_reads = 0.9, min_coverage = 20,
-  min_required_snps = 10, n_digits = 3, n_cores = 1)
+  min_required_snps = 10, library_type = "WES", n_digits = 3,
+  n_cores = 1)
 }
 \arguments{
 \item{beta_table}{data.frame formatted as the output of function
@@ -23,6 +24,8 @@ computing ploidy (default=0.90)}
 
 \item{min_required_snps}{minimum number of informative snps in  a segment
 valid for computing ploidy (default=10)}
+
+\item{library_type}{WES, WGS (default=WES)}
 
 \item{n_digits}{number of digits in the output table (default=3)}
 

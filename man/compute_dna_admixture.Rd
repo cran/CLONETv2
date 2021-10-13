@@ -6,8 +6,8 @@
 table and ploidy table}
 \usage{
 compute_dna_admixture(beta_table, ploidy_table, min_required_snps = 10,
-  min_coverage = 20, error_tb = error_table, n_digits = 3,
-  n_cores = 1, debug = F)
+  min_coverage = 20, error_tb = error_table, library_type = "WES",
+  n_digits = 3, n_cores = 1, debug = F)
 }
 \arguments{
 \item{beta_table}{data.frame formatted as the output of function
@@ -29,6 +29,8 @@ data.frame error_tb must contains 3 columns: \describe{
 SNPs} \item{adm.estimation.error}{estimated error on computed beta on a
 segment with coverage mean.cov and n.info.snps informative SNPs} } Package
 CLONETv2 have built in error_tb named error_table (default=error_table)}
+
+\item{library_type}{WES, WGS (default=WES)}
 
 \item{n_digits}{number of digits in the output table (default=3)}
 

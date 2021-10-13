@@ -75,6 +75,7 @@ from_BetaLogR_to_cnAB <- function(G, LogR, Beta ){
 #'   SNPs} \item{adm.estimation.error}{estimated error on computed beta on a
 #'   segment with coverage mean.cov and n.info.snps informative SNPs} } Package
 #'   CLONETv2 have built in error_tb named error_table (default=error_table)
+#' @param library_type WES, WGS (default=WES)
 #' @param n_digits number of digits in the output table (default=3)
 #' @param n_cores number of available cores for computation (default=1)
 #' @param debug return extra columns for debugging (default=F)
@@ -94,9 +95,13 @@ compute_dna_admixture <- function(beta_table,
 															min_required_snps=10,
 															min_coverage=20,
 															error_tb = error_table,
+															library_type="WES",
 															n_digits=3,
 															n_cores=1,
 															debug=F){
+
+	available_library_types <- c("WES","WGS")
+	if (!library_type %in% available_library_types){stop("Parameter library_type must be one of ",paste(available_library_types,collapse = ", "))}
 
 	sample_id <- unique(beta_table$sample)
 	if (length(sample_id) != 1){stop(paste("[",Sys.time() ,"] beta_table must contain exactly one sample\n",sep=""))}
@@ -126,6 +131,12 @@ compute_dna_admixture <- function(beta_table,
   ## filter on nsnps and coverage
   beta_table <- beta_table[which(beta_table$nsnp >= min_required_snps & beta_table$cov >= min_coverage),]
 
+
+  if (library_type == "WGS"){
+  	## filter beta on normal less than 0.9
+  	beta_table <- beta_table[which(beta_table$n_beta > 0.9),]
+  }
+
   ## check if empty beta_table or not defined ploidy
   if (nrow(beta_table) == 0 || is.na(beta_table$ploidy[1])){
     return(adm_tb)
@@ -134,8 +145,16 @@ compute_dna_admixture <- function(beta_table,
   ## compute allele specific copy number supposing a 100% pure sample
   beta_table <- extendBetaTableWithCopyNumbers(BetaTable = beta_table, G =0, ncores = n_cores)
 
+
   ## find maximum cnB value for the low cluster
-  localBeta <- beta_table[which(beta_table$cnB < 1),]
+  if (library_type %in% c("WES")){
+  	localBeta <- beta_table[which(beta_table$cnB < 1),]
+  }else if (library_type %in% c("WGS")){
+  	localBeta <- beta_table[which(beta_table$cnB < 1 & beta_table$cnA > 0.75),]
+  }else{
+  	stop("Parameter library_type  ",library_type," not fully supported")
+  }
+
   if (nrow(localBeta) < 2){
     return(adm_tb)
   }

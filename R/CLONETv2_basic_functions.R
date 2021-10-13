@@ -1,5 +1,5 @@
 ## define imports
-#' @import parallel sets ggplot2 ggrepel arules
+#' @import parallel sets ggplot2 ggrepel arules dbscan
 #' @export error_table
 #' @export seg_tb_toy
 #' @export pileup_tumor_toy
@@ -80,6 +80,7 @@ setBetween0and1 <- function(x){
 extendBetaTableWithCopyNumbers <- function(BetaTable, G, ncores = 1){
   #i<-1
   extendBetaLine <- function(i, BetaTable, G ){
+    cat(i,"\n");
     BetaLine <- BetaTable[i,,drop=F]
 
     cnAB.beta <- from_BetaLogR_to_cnAB(G = G, LogR = BetaLine$log2.plCorr, Beta = BetaLine$beta)

@@ -1,5 +1,5 @@
 
-findOptimumPloidy <- function(observedLog2Beta,maxCN,minAdm=0.1,maxAdm=0.7,stepCN=0.01,stepAdm = 0.05,ncores){
+findOptimumPloidy <- function(observedLog2Beta,maxCN,minAdm=0.1,maxAdm=0.7,stepCN=0.01,stepAdm = 0.05,library_type="WES",ncores){
   confs <- expand.grid(adm=seq(minAdm,maxAdm,stepAdm),cn=seq(1,maxCN,stepCN), stringsAsFactors=F)
 
   computeObservedRMSE.ind <- function(i, confs,observedLog2Beta,maxCN){
@@ -11,19 +11,40 @@ findOptimumPloidy <- function(observedLog2Beta,maxCN,minAdm=0.1,maxAdm=0.7,stepC
   confs.list <-mclapply(seq(1,nrow(confs),1),FUN=computeObservedRMSE.ind,confs=confs,observedLog2Beta=observedLog2Beta,maxCN=maxCN,mc.preschedule = T,mc.cores=ncores)
   confs <- fromListToDF(confs.list)
 
-  # select confs with minimum RMSE
-  candidate.confs <- confs[which(confs$RMSE <= stats::quantile(confs$RMSE,probs=0.05)),]
+  if (library_type == "WES"){
+	  # select confs with minimum RMSE
+	  candidate.confs <- confs[which(confs$RMSE <= stats::quantile(confs$RMSE,probs=0.05)),]
+	  # take only cases with minimum adm
+	  if (nrow(candidate.confs) > 1){
+	    discontinuity_points <- which(candidate.confs$cn[seq(1,nrow(candidate.confs)-1,1)] + 2*stepCN < candidate.confs$cn[seq(2,nrow(candidate.confs),1)])
+	    if (length(discontinuity_points) > 0 ){
+	      candidate.confs <- candidate.confs[seq(1,  min(discontinuity_points,na.rm = T),1),]
+	    }
+	  }
 
-  # take only cases with minimum adm
-  if (nrow(candidate.confs) > 1){
-    discontinuity_points <- which(candidate.confs$cn[seq(1,nrow(candidate.confs)-1,1)] + 2*stepCN < candidate.confs$cn[seq(2,nrow(candidate.confs),1)])
-    if (length(discontinuity_points) > 0 ){
-      candidate.confs <- candidate.confs[seq(1,  min(discontinuity_points,na.rm = T),1),]
-    }
-  }
+	  valToRet <- candidate.confs$cn[which.min(candidate.confs$RMSE)]
+	  return(valToRet)
 
-  valToRet <- candidate.confs$cn[which.min(candidate.confs$RMSE)]
-  return(valToRet)
+  }else if (library_type == "WGS"){
+		# as you have more segments in WS you can use dscan algorithm to find clusters of valid points
+  	observedLog2Beta_clusters <- hdbscan(observedLog2Beta, minPts = 5)
+  	#plot(x = observedLog2Beta$log2,y = observedLog2Beta$beta, pch=20, xlim=c(-1.2,1), ylim=c(0,1), col=cl$cluster+1)
+
+  	## compute median of each cluster
+  	found_clusters <- setdiff(unique(observedLog2Beta_clusters$cluster),0)
+  	cl_stats <- data.frame(row.names = found_clusters)
+  	cl_stats$cluster_id <- found_clusters
+  	cl_stats$log2_median <- NA
+  	cl_stats$log2_mean <- NA
+  	for(cl in found_clusters ){
+  		cl_stats[as.character(cl),"log2_median"] <- round(stats::median(observedLog2Beta$log2[which(observedLog2Beta_clusters$cluster == cl)]),2)
+  		#cl_stats[as.character(cl),"log2_mean"] <- round(mean(observedLog2Beta$log2[which(observedLog2Beta_clusters$cluster == cl)]),2)
+  	}
+
+  	## use leftmost cluster median
+  	valToRet <- round(2*2^(-1*min(cl_stats$log2_median)),2)
+	  return(valToRet)
+  }else{ stop("Value ",library_type," for parameter library_type not supported")}
 }
 
 computeObservedRMSE <- function(Conf,observedLog2Beta,maxCN ){
@@ -133,6 +154,7 @@ getPossibleCnComb <- function(maxCN,step=1){
 #'   (default=20)
 #' @param min_required_snps minimum number of informative snps in  a segment
 #'   valid for computing ploidy (default=10)
+#' @param library_type WES, WGS (default=WES)
 #' @param n_digits number of digits in the output table (default=3)
 #' @param n_cores number of available cores for computation (default=1)
 #' @return A data.frame with two columns: sample that corresponds to column
@@ -150,21 +172,29 @@ compute_ploidy <- function(beta_table,
 													 beta_limit_for_neutral_reads = 0.90,
 													 min_coverage=20,
 													 min_required_snps=10,
+													 library_type="WES",
 													 n_digits=3,
 													 n_cores=1){
+  available_library_types <- c("WES","WGS")
+	if (!library_type %in% available_library_types){stop("Parameter library_type must be one of ",paste(available_library_types,collapse = ", "))}
 
 	sample_id <- unique(beta_table$sample)
 
 	if (length(sample_id) != 1){stop("Beta table must contains only one sample")}
 
 	## remove potential homo dels
-  beta_table <- beta_table[which(beta_table$log2 > stats::quantile(beta_table$log2,probs=max_homo_dels_fraction)),]
+	if (library_type == "WES"){
+		beta_table <- beta_table[which(beta_table$log2 > stats::quantile(beta_table$log2,probs=max_homo_dels_fraction)),]
+	}else if (library_type == "WGS"){
+		beta_table <- beta_table[which(beta_table$log2 > stats::quantile(beta_table$log2[which(!is.na(beta_table$beta))],probs=max_homo_dels_fraction)),]
+	}else{
+		stop("Value ",library_type," for parameter library_type not supported")
+	}
 
   ## only putative copy number neutral segments
   beta_table <- beta_table[which(beta_table$beta >=  beta_limit_for_neutral_reads &
   															 beta_table$nsnp >= min_required_snps &
   															 beta_table$cov >= min_coverage	),]
-
 
   if (nrow(beta_table) > 0 ){
     ## prepare data
@@ -172,7 +202,7 @@ compute_ploidy <- function(beta_table,
     observedLog2Beta$log2 <-  beta_table$log2
     observedLog2Beta$beta <-  beta_table$beta
     maxCN <- max(3,ceiling( 2/(2^min(observedLog2Beta$log2)) * 10)/10)
-    plComputed <- findOptimumPloidy(observedLog2Beta,maxCN=maxCN,ncores=n_cores )
+    plComputed <- findOptimumPloidy(observedLog2Beta,maxCN=maxCN,library_type = library_type ,ncores=n_cores  )
 
   }else{
     plComputed <- NA
